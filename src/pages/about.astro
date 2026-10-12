@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { SITE } from '../site.config';
+const initials = SITE.teacher.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+---
+<Base title="About" description={`About ${SITE.name} — ${SITE.tagline}.`}>
+  <PageHead title={`About ${SITE.name}`} intro={SITE.tagline + '.'} crumbs={[{ label: 'About' }]} />
+  <section class="section">
+    <div class="wrap about">
+      <div class="card person">
+        <div class="avatar">{initials}</div>
+        <h3>{SITE.teacher.name}</h3>
+        <p class="role">{SITE.teacher.role}</p>
+      </div>
+      <div class="prose">
+        <h2>Our story</h2>
+        <p>{SITE.teacher.bio}</p>
+        <h2>What you get here</h2>
+        <ul>
+          <li><strong>MP Board notes</strong>: chapter-wise, NCERT-based, for Class 9–12.</li>
+          <li><strong>CBT mock tests</strong>: timed, with negative marking and a full answer key.</li>
+          <li><strong>Exam guidance</strong> for MP SI, Police, Patwari, MPPSC, TET and more.</li>
+        </ul>
+        <h2>Free, always</h2>
+        <p>Every page on {SITE.domain} is free. There is no login and no paywall. If Bookesh helps you, share it with a friend who is preparing too.</p>
+        {SITE.email && <p>Write to us: <a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .about { display: grid; grid-template-columns: 280px 1fr; gap: 40px; align-items: start; }
+  .person { text-align: center; position: sticky; top: 90px; }
+  .avatar { width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; background: linear-gradient(135deg, var(--brand), #6d8cff); color: #fff; font: 700 2rem var(--font-head); }
+  .role { color: var(--text-3); margin: 0; }
+  .prose h2:first-child { margin-top: 0; padding-top: 0; }
+  @media (max-width: 760px) { .about { grid-template-columns: 1fr; } .person { position: static; } }
+</style>

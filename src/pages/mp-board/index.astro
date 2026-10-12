@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { CLASSES } from '../../data/mpboard';
+---
+<Base title="MP Board Class 9–12 Notes & Practice" description="Free MP Board (MPBSE) chapter-wise notes, important questions and practice for Class 9, 10, 11 and 12.">
+  <PageHead
+    title="MP Board (MPBSE)"
+    intro="NCERT-based chapter notes, important questions and practice for Class 9 to 12. Choose your class to begin."
+    crumbs={[{ label: 'MP Board' }]}
+  />
+  <section class="section">
+    <div class="wrap">
+      <div class="grid grid-2">
+        {CLASSES.map((c) => (
+          <a href={`/mp-board/${c.slug}/`} class="card cls">
+            <div class:list={['icon-badge', c.tone]}>{c.short}</div>
+            <div>
+              <h3>{c.name}</h3>
+              <p>{c.blurb}</p>
+              <div class="subs">
+                {c.subjects.map((s) => <span class="chip">{s.name}</span>)}
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .cls { display: flex; gap: 18px; align-items: flex-start; }
+  .cls .icon-badge { flex: none; width: 56px; height: 56px; font-size: 1.4rem; margin: 0; }
+  .subs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+</style>

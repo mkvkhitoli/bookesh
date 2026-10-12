@@ -1,0 +1,62 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../../../layouts/Base.astro';
+import PageHead from '../../../../components/PageHead.astro';
+import { CLASSES, chapterSlug, type ClassInfo, type Subject } from '../../../../data/mpboard';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes');
+  return CLASSES.flatMap((c) =>
+    c.subjects.flatMap((s) =>
+      s.chapters.map((title, i) => {
+        const slug = chapterSlug(i);
+        const entry = notes.find((n) => n.id === `${c.slug}/${s.slug}/${slug}`);
+        return { params: { cls: c.slug, subject: s.slug, chapter: slug }, props: { c, s, i, title, entry } };
+      })
+    )
+  );
+}
+const { c, s, i, title, entry } = Astro.props as { c: ClassInfo; s: Subject; i: number; title: string; entry?: any };
+const { Content } = entry ? await render(entry) : { Content: null };
+const prev = i > 0 ? { slug: chapterSlug(i - 1), title: s.chapters[i - 1] } : null;
+const next = i < s.chapters.length - 1 ? { slug: chapterSlug(i + 1), title: s.chapters[i + 1] } : null;
+const base = `/mp-board/${c.slug}/${s.slug}/`;
+---
+<Base
+  title={`${title} — ${c.name} ${s.name} Notes`}
+  description={entry?.data.summary ?? `MP Board ${c.name} ${s.name} Chapter ${i + 1}: ${title} — notes and important questions.`}
+>
+  <PageHead
+    title={`Ch ${i + 1}. ${title}`}
+    intro={entry?.data.summary}
+    crumbs={[
+      { label: 'MP Board', href: '/mp-board/' },
+      { label: c.name, href: `/mp-board/${c.slug}/` },
+      { label: s.name, href: base },
+      { label: `Chapter ${i + 1}` },
+    ]}
+  />
+  <section class="section">
+    <div class="wrap">
+      {Content ? (
+        <article class="prose"><Content /></article>
+      ) : (
+        <div class="notice">Notes for this chapter are being written. Meanwhile, practise with a <a href="/mock-tests/">free mock test</a>.</div>
+      )}
+
+      <nav class="pager">
+        {prev ? <a href={`${base}${prev.slug}/`} class="card"><small>← Previous</small><strong>{prev.title}</strong></a> : <span></span>}
+        {next ? <a href={`${base}${next.slug}/`} class="card next"><small>Next →</small><strong>{next.title}</strong></a> : <span></span>}
+      </nav>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; max-width: 760px; }
+  .pager .card { padding: 14px 18px; }
+  .pager small { display: block; color: var(--text-3); font-weight: 600; }
+  .pager strong { font-size: .95rem; }
+  .pager .next { text-align: right; }
+  @media (max-width: 560px) { .pager { grid-template-columns: 1fr; } .pager .next { text-align: left; } }
+</style>

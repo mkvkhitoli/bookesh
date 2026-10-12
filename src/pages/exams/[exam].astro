@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { EXAMS, type Exam } from '../../data/exams';
+import { getTest } from '../../data/tests';
+
+export function getStaticPaths() {
+  return EXAMS.map((e) => ({ params: { exam: e.slug }, props: { e } }));
+}
+const { e } = Astro.props as { e: Exam };
+const tests = e.tests.map(getTest).filter(Boolean);
+---
+<Base title={`${e.name} Preparation — Syllabus & Free Mock Tests`} description={`${e.full}: subjects to study and free CBT mock tests on Bookesh.`}>
+  <PageHead title={e.full} intro={e.about} crumbs={[{ label: 'Competitive Exams', href: '/exams/' }, { label: e.name }]} />
+  <section class="section">
+    <div class="wrap two">
+      <div>
+        <h2>Free mock tests</h2>
+        {tests.length ? (
+          <div class="grid">
+            {tests.map((t) => (
+              <a href={`/mock-tests/${t!.id}/`} class="card">
+                <h3>{t!.title}</h3>
+                <p>{t!.questions.length} questions · {t!.durationMinutes} min · −{t!.negativeMarks} per wrong answer</p>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="notice">Mock tests for {e.name} are being prepared. Try the <a href="/mock-tests/">general tests</a> meanwhile.</div>
+        )}
+      </div>
+      <aside class="card">
+        <h3>Subjects to cover</h3>
+        <ul class="subj">
+          {e.subjects.map((s) => <li>{s}</li>)}
+        </ul>
+        <p class="muted small">Always check the official notification for the latest syllabus and exam pattern.</p>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .two { display: grid; grid-template-columns: 1.6fr 1fr; gap: 28px; align-items: start; }
+  .subj { padding-left: 1.1em; margin: 8px 0 16px; }
+  .subj li { margin: 6px 0; }
+  .small { font-size: .85rem; margin: 0; }
+  @media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
+</style>

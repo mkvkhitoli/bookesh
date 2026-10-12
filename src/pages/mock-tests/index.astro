@@ -1,0 +1,51 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { TESTS } from '../../data/tests';
+---
+<Base title="Free CBT Mock Tests" description="Free online CBT mock tests for MP SI, MP Police, Patwari and MPPSC, with a timer, negative marking and instant results.">
+  <PageHead
+    title="Free CBT Mock Tests"
+    intro="Real-exam-style online tests with a timer, question palette, mark-for-review and negative marking. You get your result and full solutions right after you submit."
+    crumbs={[{ label: 'Mock Tests' }]}
+  />
+  <section class="section">
+    <div class="wrap">
+      <div class="grid grid-2">
+        {TESTS.map((t) => (
+          <a href={`/mock-tests/${t.id}/`} class="card test" data-id={t.id}>
+            <div class="top"><span class="chip live">● Live</span><span class="best" hidden></span></div>
+            <h3>{t.title}</h3>
+            <p>{t.description}</p>
+            <div class="meta">
+              <span>📝 {t.questions.length} questions</span>
+              <span>⏱ {t.durationMinutes} min</span>
+              <span>✅ +{t.marksPerQuestion} / ❌ −{t.negativeMarks}</span>
+            </div>
+            <span class="btn btn-primary btn-sm go">Start test →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  // Show the student's best score (saved in this browser only).
+  document.querySelectorAll<HTMLElement>('.test').forEach((el) => {
+    try {
+      const best = localStorage.getItem('bk-best-' + el.dataset.id);
+      if (best) {
+        const b = el.querySelector<HTMLElement>('.best')!;
+        b.textContent = 'Your best: ' + best;
+        b.hidden = false;
+      }
+    } catch {}
+  });
+</script>
+
+<style>
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .best { font-size: .8rem; font-weight: 600; color: var(--brand); }
+  .meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0 18px; font-size: .85rem; color: var(--text-2); }
+</style>

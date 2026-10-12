@@ -1,0 +1,545 @@
+---
+import Base from '../../layouts/Base.astro';
+import { TESTS, type MockTest } from '../../data/tests';
+
+export function getStaticPaths() {
+  return TESTS.map((t) => ({ params: { test: t.id }, props: { t } }));
+}
+const { t } = Astro.props as { t: MockTest };
+const sections = [...new Set(t.questions.map((q) => q.section))];
+---
+<Base title={t.title} description={`${t.description} Free online CBT mock test with timer and instant result.`} bare>
+  <script type="application/json" id="test-data" set:html={JSON.stringify(t)} />
+
+  <!-- ===== 1. INSTRUCTIONS ===== -->
+  <section id="screen-intro" class="screen">
+    <div class="wrap intro">
+      <a href="/mock-tests/" class="back">← All mock tests</a>
+      <span class="eyebrow">{t.exam}</span>
+      <h1>{t.title}</h1>
+      <p class="muted">{t.description}</p>
+
+      <div class="stats">
+        <div><strong>{t.questions.length}</strong><span>Questions</span></div>
+        <div><strong>{t.durationMinutes}</strong><span>Minutes</span></div>
+        <div><strong>+{t.marksPerQuestion}</strong><span>Per correct</span></div>
+        <div><strong>−{t.negativeMarks}</strong><span>Per wrong</span></div>
+      </div>
+
+      <div class="card rules">
+        <h3>Instructions</h3>
+        <ol>
+          <li>The timer starts when you press <b>Start Test</b>. The test is submitted automatically when time runs out.</li>
+          <li>Pick an option, then press <b>Save &amp; Next</b>. Use <b>Mark for Review</b> for questions you want to look at again.</li>
+          <li>Jump to any question from the <b>question palette</b>.</li>
+          <li>Each wrong answer deducts <b>{t.negativeMarks}</b> marks. Unanswered questions get 0.</li>
+          <li>Keyboard shortcuts: <kbd>A</kbd>–<kbd>D</kbd> select an option, and <kbd>←</kbd> <kbd>→</kbd> move between questions.</li>
+        </ol>
+        <div class="legend">
+          <span><i class="st nv"></i>Not visited</span>
+          <span><i class="st na"></i>Not answered</span>
+          <span><i class="st an"></i>Answered</span>
+          <span><i class="st mr"></i>Marked for review</span>
+          <span><i class="st am"></i>Answered &amp; marked</span>
+        </div>
+        <p class="sections">Sections: {sections.join(' · ')}</p>
+      </div>
+
+      <label class="name">
+        Your name (optional, shown on your result)
+        <input id="student-name" type="text" maxlength="40" placeholder="e.g. Rahul" autocomplete="given-name" />
+      </label>
+      <button id="btn-start" class="btn btn-primary big">Start Test →</button>
+    </div>
+  </section>
+
+  <!-- ===== 2. EXAM ===== -->
+  <section id="screen-exam" class="screen" hidden>
+    <div class="exam-top">
+      <div class="wrap et-inner">
+        <div class="et-title">{t.title}</div>
+        <div id="timer" class="timer" aria-live="off">--:--</div>
+        <button id="btn-palette" class="btn btn-ghost btn-sm pal-toggle" aria-controls="palette">☰ Questions</button>
+      </div>
+    </div>
+
+    <div class="wrap exam-grid">
+      <div class="q-panel">
+        <div class="q-head">
+          <span id="q-num" class="q-num"></span>
+          <span id="q-sec" class="chip"></span>
+        </div>
+        <p id="q-text" class="q-text"></p>
+        <div id="q-options" class="options" role="radiogroup"></div>
+
+        <div class="actions">
+          <button id="btn-mark" class="btn btn-ghost">🔖 Mark for Review &amp; Next</button>
+          <button id="btn-clear" class="btn btn-ghost">Clear</button>
+          <span class="grow"></span>
+          <button id="btn-prev" class="btn btn-ghost">← Prev</button>
+          <button id="btn-next" class="btn btn-primary">Save &amp; Next →</button>
+        </div>
+      </div>
+
+      <aside id="palette" class="palette card">
+        <div class="pal-head">
+          <strong>Question palette</strong>
+          <button id="btn-pal-close" class="pal-close" aria-label="Close palette">✕</button>
+        </div>
+        <div class="counts" id="counts"></div>
+        <div id="pal-grid" class="pal-grid"></div>
+        <button id="btn-submit" class="btn btn-accent submit">Submit Test</button>
+      </aside>
+    </div>
+    <div id="pal-backdrop" class="backdrop" hidden></div>
+  </section>
+
+  <!-- Confirm modal -->
+  <div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <h3 id="modal-title">Submit the test?</h3>
+      <div id="modal-summary" class="modal-summary"></div>
+      <p class="muted">You won't be able to change your answers after submitting.</p>
+      <div class="modal-actions">
+        <button id="btn-cancel" class="btn btn-ghost">Go back</button>
+        <button id="btn-confirm" class="btn btn-primary">Yes, submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3. RESULT ===== -->
+  <section id="screen-result" class="screen" hidden>
+    <div class="wrap result">
+      <div class="res-hero card">
+        <div class="ring" id="ring"><div><strong id="r-score"></strong><span id="r-total"></span></div></div>
+        <div class="res-info">
+          <span class="eyebrow" id="r-hello">Your result</span>
+          <h2 id="r-msg"></h2>
+          <div class="res-stats">
+            <div class="ok"><strong id="r-correct"></strong><span>Correct</span></div>
+            <div class="bad"><strong id="r-wrong"></strong><span>Wrong</span></div>
+            <div class="skip"><strong id="r-skip"></strong><span>Skipped</span></div>
+            <div><strong id="r-acc"></strong><span>Accuracy</span></div>
+            <div><strong id="r-time"></strong><span>Time taken</span></div>
+          </div>
+          <div class="res-cta">
+            <button id="btn-retake" class="btn btn-primary">↻ Retake test</button>
+            <button id="btn-share" class="btn btn-ghost">Share score</button>
+            <a href="/mock-tests/" class="btn btn-ghost">More tests</a>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="mt">Section-wise performance</h3>
+      <div class="table-wrap"><table class="sec-table" id="sec-table"></table></div>
+
+      <div class="review-head">
+        <h3>Answer key &amp; solutions</h3>
+        <div class="filters" role="tablist">
+          <button class="f active" data-f="all">All</button>
+          <button class="f" data-f="wrong">Wrong</button>
+          <button class="f" data-f="skipped">Skipped</button>
+          <button class="f" data-f="correct">Correct</button>
+        </div>
+      </div>
+      <div id="review" class="review"></div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  type Q = { section: string; q: string; options: string[]; answer: number; solution?: string };
+  type T = { id: string; title: string; durationMinutes: number; marksPerQuestion: number; negativeMarks: number; questions: Q[] };
+
+  const T: T = JSON.parse(document.getElementById('test-data')!.textContent!);
+  const N = T.questions.length;
+  const L = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const $ = <E extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as E;
+
+  let answers: (number | null)[] = [];
+  let visited: boolean[] = [];
+  let marked: boolean[] = [];
+  let cur = 0;
+  let endAt = 0;
+  let startedAt = 0;
+  let tick: number | undefined;
+  let running = false;
+  let studentName = '';
+
+  const show = (id: string) => {
+    ['screen-intro', 'screen-exam', 'screen-result'].forEach((s) => ($(s).hidden = s !== id));
+    window.scrollTo(0, 0);
+  };
+
+  function start() {
+    studentName = ($('student-name') as HTMLInputElement).value.trim();
+    answers = Array(N).fill(null);
+    visited = Array(N).fill(false);
+    marked = Array(N).fill(false);
+    cur = 0;
+    startedAt = Date.now();
+    endAt = startedAt + T.durationMinutes * 60_000;
+    running = true;
+    show('screen-exam');
+    buildPalette();
+    go(0);
+    clearInterval(tick);
+    tick = window.setInterval(updateTimer, 250);
+    updateTimer();
+  }
+
+  function updateTimer() {
+    const left = Math.max(0, endAt - Date.now());
+    const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+    const el = $('timer');
+    el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    el.classList.toggle('warn', left < 5 * 60_000);
+    el.classList.toggle('danger', left < 60_000);
+    if (left <= 0 && running) finish();
+  }
+
+  function status(i: number) {
+    if (marked[i] && answers[i] !== null) return 'am';
+    if (marked[i]) return 'mr';
+    if (answers[i] !== null) return 'an';
+    if (visited[i]) return 'na';
+    return 'nv';
+  }
+
+  function buildPalette() {
+    const g = $('pal-grid');
+    g.innerHTML = '';
+    for (let i = 0; i < N; i++) {
+      const b = document.createElement('button');
+      b.textContent = String(i + 1);
+      b.className = 'pb';
+      b.setAttribute('aria-label', `Question ${i + 1}`);
+      b.onclick = () => { go(i); closePalette(); };
+      g.appendChild(b);
+    }
+  }
+
+  function refreshPalette() {
+    const counts = { an: 0, na: 0, nv: 0, mr: 0, am: 0 } as Record<string, number>;
+    $('pal-grid').querySelectorAll<HTMLButtonElement>('.pb').forEach((b, i) => {
+      const st = status(i);
+      counts[st]++;
+      b.className = `pb st ${st}${i === cur ? ' cur' : ''}`;
+    });
+    $('counts').innerHTML =
+      `<span><i class="st an"></i>${counts.an} Answered</span><span><i class="st na"></i>${counts.na} Not answered</span>` +
+      `<span><i class="st nv"></i>${counts.nv} Not visited</span><span><i class="st mr"></i>${counts.mr + counts.am} Marked</span>`;
+  }
+
+  function go(i: number) {
+    cur = Math.max(0, Math.min(N - 1, i));
+    visited[cur] = true;
+    const q = T.questions[cur];
+    $('q-num').textContent = `Question ${cur + 1} of ${N}`;
+    $('q-sec').textContent = q.section;
+    $('q-text').textContent = q.q;
+    const box = $('q-options');
+    box.innerHTML = '';
+    q.options.forEach((opt, k) => {
+      const b = document.createElement('button');
+      b.className = 'opt' + (answers[cur] === k ? ' sel' : '');
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(answers[cur] === k));
+      b.innerHTML = `<span class="ol">${L[k]}</span><span class="ot"></span>`;
+      (b.querySelector('.ot') as HTMLElement).textContent = opt;
+      b.onclick = () => choose(k);
+      box.appendChild(b);
+    });
+    ($('btn-prev') as HTMLButtonElement).disabled = cur === 0;
+    $('btn-next').textContent = cur === N - 1 ? 'Save ✓' : 'Save & Next →';
+    refreshPalette();
+  }
+
+  function choose(k: number) {
+    answers[cur] = k;
+    $('q-options').querySelectorAll('.opt').forEach((el, j) => {
+      el.classList.toggle('sel', j === k);
+      el.setAttribute('aria-checked', String(j === k));
+    });
+    refreshPalette();
+  }
+
+  function next() { marked[cur] = false; if (cur < N - 1) go(cur + 1); else { refreshPalette(); openModal(); } }
+
+  // Palette drawer (mobile)
+  const openPalette = () => { $('palette').classList.add('open'); $('pal-backdrop').hidden = false; };
+  const closePalette = () => { $('palette').classList.remove('open'); $('pal-backdrop').hidden = true; };
+
+  function openModal() {
+    const a = answers.filter((x) => x !== null).length;
+    const m = marked.filter(Boolean).length;
+    $('modal-summary').innerHTML =
+      `<div><strong>${a}</strong><span>Answered</span></div><div><strong>${N - a}</strong><span>Unanswered</span></div><div><strong>${m}</strong><span>Marked</span></div>`;
+    $('modal').hidden = false;
+    $('btn-confirm').focus();
+  }
+  const closeModal = () => ($('modal').hidden = true);
+
+  function finish() {
+    running = false;
+    clearInterval(tick);
+    closeModal();
+    closePalette();
+    const timeTaken = Math.min(Date.now(), endAt) - startedAt;
+
+    let correct = 0, wrong = 0, skipped = 0;
+    const secs: Record<string, { total: number; c: number; w: number }> = {};
+    T.questions.forEach((q, i) => {
+      secs[q.section] ??= { total: 0, c: 0, w: 0 };
+      secs[q.section].total++;
+      if (answers[i] === null) skipped++;
+      else if (answers[i] === q.answer) { correct++; secs[q.section].c++; }
+      else { wrong++; secs[q.section].w++; }
+    });
+    const max = N * T.marksPerQuestion;
+    const score = +(correct * T.marksPerQuestion - wrong * T.negativeMarks).toFixed(2);
+    const pct = Math.max(0, score / max);
+    const acc = correct + wrong ? Math.round((correct / (correct + wrong)) * 100) : 0;
+
+    $('r-score').textContent = String(score);
+    $('r-total').textContent = `/ ${max}`;
+    $('ring').style.setProperty('--p', String(Math.round(pct * 100)));
+    $('ring').dataset.level = pct >= 0.75 ? 'hi' : pct >= 0.4 ? 'mid' : 'lo';
+    $('r-hello').textContent = studentName ? `${studentName}'s result` : 'Your result';
+    $('r-msg').textContent = pct >= 0.85 ? 'Excellent! You are exam-ready 🎉' : pct >= 0.6 ? 'Good work. A little more practice!' : pct >= 0.35 ? 'Decent start. Review the solutions below.' : "Keep going. Every test makes you stronger.";
+    $('r-correct').textContent = String(correct);
+    $('r-wrong').textContent = String(wrong);
+    $('r-skip').textContent = String(skipped);
+    $('r-acc').textContent = acc + '%';
+    const mm = Math.floor(timeTaken / 60000), ss = Math.floor((timeTaken % 60000) / 1000);
+    $('r-time').textContent = `${mm}m ${ss}s`;
+
+    $('sec-table').innerHTML =
+      '<thead><tr><th>Section</th><th>Questions</th><th>Correct</th><th>Wrong</th><th>Score</th></tr></thead><tbody>' +
+      Object.entries(secs).map(([name, s]) =>
+        `<tr><td>${esc(name)}</td><td>${s.total}</td><td class="ok">${s.c}</td><td class="bad">${s.w}</td><td><b>${+(s.c * T.marksPerQuestion - s.w * T.negativeMarks).toFixed(2)}</b></td></tr>`
+      ).join('') + '</tbody>';
+
+    renderReview('all');
+
+    try {
+      const key = 'bk-best-' + T.id;
+      const prev = parseFloat(localStorage.getItem(key) || '-999');
+      if (score > prev) localStorage.setItem(key, `${score}/${max}`);
+    } catch {}
+
+    show('screen-result');
+  }
+
+  function esc(s: string) {
+    return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  }
+
+  function renderReview(filter: string) {
+    const box = $('review');
+    box.innerHTML = T.questions.map((q, i) => {
+      const a = answers[i];
+      const state = a === null ? 'skipped' : a === q.answer ? 'correct' : 'wrong';
+      if (filter !== 'all' && filter !== state) return '';
+      const opts = q.options.map((o, k) => {
+        const cls = k === q.answer ? 'right' : k === a ? 'picked' : '';
+        const tag = k === q.answer ? ' <em>✓ Correct</em>' : k === a ? ' <em>✗ Your answer</em>' : '';
+        return `<li class="${cls}"><span class="ol">${L[k]}</span>${esc(o)}${tag}</li>`;
+      }).join('');
+      const sol = q.solution ? `<div class="sol"><strong>Solution</strong>${esc(q.solution).split('\n').map((l) => `<p>${l}</p>`).join('')}</div>` : '';
+      const label = state === 'correct' ? '✓ Correct' : state === 'wrong' ? '✗ Wrong' : '– Skipped';
+      return `<article class="rv ${state}"><div class="rv-top"><span>Q${i + 1} · ${esc(q.section)}</span><span class="tag">${label}</span></div><p class="rv-q">${esc(q.q)}</p><ul>${opts}</ul>${sol}</article>`;
+    }).join('') || '<p class="muted">Nothing here.</p>';
+  }
+
+  // ---- Wire up ----
+  $('btn-start').onclick = start;
+  $('btn-next').onclick = next;
+  $('btn-prev').onclick = () => go(cur - 1);
+  $('btn-clear').onclick = () => { answers[cur] = null; marked[cur] = false; go(cur); };
+  $('btn-mark').onclick = () => { marked[cur] = true; if (cur < N - 1) go(cur + 1); else refreshPalette(); };
+  $('btn-palette').onclick = openPalette;
+  $('btn-pal-close').onclick = closePalette;
+  $('pal-backdrop').onclick = closePalette;
+  $('btn-submit').onclick = openModal;
+  $('btn-cancel').onclick = closeModal;
+  $('btn-confirm').onclick = finish;
+  $('btn-retake').onclick = () => { show('screen-intro'); };
+  $('btn-share').onclick = async () => {
+    const text = `I scored ${$('r-score').textContent}${$('r-total').textContent} in "${T.title}" on Bookesh! Try it free:`;
+    const url = location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: T.title, text, url });
+      else { await navigator.clipboard.writeText(`${text} ${url}`); $('btn-share').textContent = 'Copied ✓'; }
+    } catch {}
+  };
+  document.querySelectorAll<HTMLButtonElement>('.filters .f').forEach((b) => {
+    b.onclick = () => {
+      document.querySelectorAll('.filters .f').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      renderReview(b.dataset.f!);
+    };
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!running || !$('modal').hidden) {
+      if (e.key === 'Escape') closeModal();
+      return;
+    }
+    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    const k = e.key.toUpperCase();
+    const idx = L.indexOf(k);
+    if (idx > -1 && idx < T.questions[cur].options.length) choose(idx);
+    else if (e.key === 'ArrowRight') go(cur + 1);
+    else if (e.key === 'ArrowLeft') go(cur - 1);
+    else if (e.key === 'Escape') closePalette();
+  });
+
+  window.addEventListener('beforeunload', (e) => { if (running) { e.preventDefault(); e.returnValue = ''; } });
+</script>
+
+<style is:global>
+  .screen { min-height: calc(100vh - 64px); }
+  .intro { max-width: 760px; padding-top: 32px; padding-bottom: 56px; }
+  .back { display: inline-block; margin-bottom: 18px; font-weight: 500; }
+  .intro h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+  .stats div { background: var(--brand-soft); border-radius: 12px; padding: 14px; text-align: center; }
+  .stats strong { display: block; font: 700 1.5rem var(--font-head); color: var(--brand); }
+  .stats span { font-size: .8rem; color: var(--text-2); }
+  .rules ol { padding-left: 1.2em; margin: 0 0 16px; }
+  .rules li { margin: 6px 0; color: var(--text-2); }
+  kbd { background: var(--bg-alt); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font-size: .85em; }
+  .legend, .counts { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: .82rem; color: var(--text-2); }
+  .legend span, .counts span { display: inline-flex; align-items: center; gap: 6px; }
+  .sections { font-size: .85rem; color: var(--text-3); margin: 14px 0 0; }
+  .name { display: block; margin: 24px 0 16px; font-weight: 500; font-size: .92rem; }
+  .name input { display: block; width: 100%; max-width: 360px; margin-top: 6px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font: inherit; }
+  .name input:focus { border-color: var(--brand); outline: none; }
+  .btn.big { padding: 15px 30px; font-size: 1.05rem; }
+
+  /* status colours */
+  i.st { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+  .st.nv { background: #eef1f6; color: var(--text-2); border: 1px solid var(--border); }
+  .st.na { background: var(--red); color: #fff; }
+  .st.an { background: var(--green); color: #fff; }
+  .st.mr { background: var(--purple); color: #fff; }
+  .st.am { background: var(--purple); color: #fff; box-shadow: inset 0 -4px 0 var(--green); }
+
+  /* exam */
+  .exam-top { position: sticky; top: 64px; z-index: 30; background: #fff; border-bottom: 1px solid var(--border); }
+  .et-inner { display: flex; align-items: center; gap: 12px; height: 56px; }
+  .et-title { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .timer { font: 700 1.1rem var(--font-head); padding: 6px 14px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-variant-numeric: tabular-nums; }
+  .timer.warn { background: var(--accent-soft); color: #b45309; }
+  .timer.danger { background: var(--red-soft); color: var(--red); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .6; } }
+  .pal-toggle { display: none; }
+
+  .exam-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; padding-top: 24px; padding-bottom: 40px; align-items: start; }
+  .q-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .q-num { font-weight: 600; color: var(--text-3); font-size: .9rem; }
+  .q-text { font-size: 1.2rem; font-weight: 600; line-height: 1.5; margin-bottom: 20px; }
+  .options { display: grid; gap: 10px; }
+  .opt { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px; background: #fff; font: inherit; font-size: 1rem; color: var(--text); cursor: pointer; transition: border-color .12s, background .12s; }
+  .opt:hover { border-color: #b8c7f3; background: #fafbff; }
+  .opt .ol { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-alt); font-weight: 700; font-size: .9rem; }
+  .opt.sel { border-color: var(--brand); background: var(--brand-soft); }
+  .opt.sel .ol { background: var(--brand); color: #fff; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .actions .grow { flex: 1; }
+  .actions .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .palette { position: sticky; top: 136px; padding: 18px; }
+  .pal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .pal-close { display: none; background: none; border: 0; font-size: 1.2rem; cursor: pointer; }
+  .palette .counts { margin-bottom: 14px; gap: 8px 12px; font-size: .78rem; }
+  .palette .counts i.st { width: 12px; height: 12px; }
+  .pal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 50vh; overflow-y: auto; padding: 2px; }
+  .pb { aspect-ratio: 1; border-radius: 8px; border: 0; font: 600 .9rem var(--font); cursor: pointer; }
+  .pb.cur { outline: 3px solid var(--brand); outline-offset: 1px; }
+  .submit { width: 100%; margin-top: 18px; }
+  .backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.4); z-index: 60; }
+
+  .modal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: grid; place-items: center; z-index: 80; padding: 16px; }
+  .modal[hidden] { display: none; }
+  .modal-box { background: #fff; border-radius: 18px; padding: 24px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); }
+  .modal-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+  .modal-summary div { background: var(--bg-alt); border-radius: 10px; padding: 12px; text-align: center; }
+  .modal-summary strong { display: block; font: 700 1.4rem var(--font-head); }
+  .modal-summary span { font-size: .78rem; color: var(--text-2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  @media (max-width: 900px) {
+    .exam-grid { grid-template-columns: 1fr; }
+    .pal-toggle { display: inline-flex; }
+    .palette { position: fixed; top: 0; right: 0; bottom: 0; width: min(320px, 88vw); z-index: 70; border-radius: 0; transform: translateX(105%); transition: transform .2s; overflow-y: auto; }
+    .palette.open { transform: none; }
+    .pal-close { display: block; }
+    .pal-grid { max-height: none; }
+    .et-title { font-size: .9rem; }
+    .actions .grow { display: none; }
+    .actions .btn { flex: 1 1 auto; }
+    #btn-prev { flex: 0 0 auto; }
+    #btn-next { flex: 1 1 auto; }
+  }
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .q-text { font-size: 1.08rem; }
+    .et-title { display: none; }
+    .et-inner { justify-content: space-between; }
+  }
+
+  /* result */
+  .result { padding-top: 32px; padding-bottom: 56px; max-width: 900px; }
+  .res-hero { display: flex; gap: 32px; align-items: center; padding: 28px; }
+  .ring { --p: 0; --c: var(--brand); flex: none; width: 160px; height: 160px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c) calc(var(--p) * 1%), #e8edf7 0); }
+  .ring[data-level='hi'] { --c: var(--green); }
+  .ring[data-level='mid'] { --c: var(--accent); }
+  .ring[data-level='lo'] { --c: var(--red); }
+  .ring > div { width: 124px; height: 124px; border-radius: 50%; background: #fff; display: grid; place-content: center; text-align: center; }
+  .ring strong { font: 700 2.2rem var(--font-head); line-height: 1; }
+  .ring span { color: var(--text-3); font-size: .9rem; }
+  .res-info { flex: 1; }
+  .res-info h2 { font-size: 1.4rem; }
+  .res-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 16px 0 20px; }
+  .res-stats div { background: var(--bg-alt); border-radius: 10px; padding: 10px; text-align: center; }
+  .res-stats strong { display: block; font: 700 1.2rem var(--font-head); }
+  .res-stats span { font-size: .75rem; color: var(--text-2); }
+  .res-stats .ok strong, td.ok { color: var(--green); }
+  .res-stats .bad strong, td.bad { color: var(--red); }
+  .res-stats .skip strong { color: var(--text-3); }
+  .res-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mt { margin-top: 36px; }
+  .table-wrap { overflow-x: auto; }
+  .sec-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); font-size: .93rem; }
+  .sec-table th, .sec-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  .sec-table th { background: var(--bg-alt); font-weight: 600; color: var(--text-2); }
+  .review-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 36px 0 16px; }
+  .review-head h3 { margin: 0; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filters .f { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: #fff; font: 600 .85rem var(--font); cursor: pointer; color: var(--text-2); }
+  .filters .f.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .review { display: grid; gap: 14px; }
+  .rv { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--text-3); border-radius: 12px; padding: 16px 18px; }
+  .rv.correct { border-left-color: var(--green); }
+  .rv.wrong { border-left-color: var(--red); }
+  .rv-top { display: flex; justify-content: space-between; font-size: .8rem; color: var(--text-3); font-weight: 600; }
+  .rv.correct .tag { color: var(--green); }
+  .rv.wrong .tag { color: var(--red); }
+  .rv-q { font-weight: 600; margin: 8px 0 10px; }
+  .rv ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .rv li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--bg-alt); font-size: .93rem; }
+  .rv li .ol { font-weight: 700; color: var(--text-3); }
+  .rv li em { margin-left: auto; font-style: normal; font-size: .78rem; font-weight: 700; }
+  .rv li.right { background: var(--green-soft); color: #166534; }
+  .rv li.picked { background: var(--red-soft); color: #991b1b; }
+  .sol { margin-top: 12px; padding: 12px 14px; background: var(--accent-soft); border-radius: 10px; font-size: .93rem; }
+  .sol strong { display: block; margin-bottom: 4px; color: #92400e; }
+  .sol p { margin: 0 0 4px; }
+  @media (max-width: 700px) {
+    .res-hero { flex-direction: column; text-align: center; padding: 22px 16px; }
+    .res-stats { grid-template-columns: repeat(3, 1fr); }
+    .res-cta { justify-content: center; }
+  }
+</style>

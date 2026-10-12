@@ -1,0 +1,6 @@
+# Redirect old WordPress URLs to the new pages (keeps your Google ranking).
+# Format:  /old-path   /new-path   301
+# Examples (edit to match your real old URLs):
+# /category/mp-board/*     /mp-board/          301
+# /mp-board-class-10-science-notes/   /mp-board/class-10/science/   301
+/feed   /   301

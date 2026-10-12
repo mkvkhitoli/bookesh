@@ -1,0 +1,38 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PageHead from '../../../components/PageHead.astro';
+import { CLASSES, type ClassInfo } from '../../../data/mpboard';
+
+export function getStaticPaths() {
+  return CLASSES.map((c) => ({ params: { cls: c.slug }, props: { c } }));
+}
+const { c } = Astro.props as { c: ClassInfo };
+---
+<Base title={`MP Board ${c.name} — All Subjects`} description={`MP Board ${c.name} chapter-wise notes and practice for ${c.subjects.map((s) => s.name).join(', ')}.`}>
+  <PageHead
+    title={`MP Board ${c.name}`}
+    intro={c.blurb}
+    crumbs={[{ label: 'MP Board', href: '/mp-board/' }, { label: c.name }]}
+  />
+  <section class="section">
+    <div class="wrap">
+      <h2>Choose a subject</h2>
+      <div class="grid grid-3">
+        {c.subjects.map((s) => (
+          <a href={`/mp-board/${c.slug}/${s.slug}/`} class="card">
+            <div class:list={['icon-badge', s.tone]}>{s.icon}</div>
+            <h3>{s.name} <span class="hi">· {s.hindi}</span></h3>
+            {s.chapters.length > 0
+              ? <span class="chip live">{s.chapters.length} chapters</span>
+              : <span class="chip soon">Coming soon</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hi { font-weight: 500; color: var(--text-3); font-size: .95rem; }
+  .card .chip { margin-top: 8px; }
+</style>

@@ -1,0 +1,43 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../../../layouts/Base.astro';
+import PageHead from '../../../../components/PageHead.astro';
+import { CLASSES, chapterSlug, type ClassInfo, type Subject } from '../../../../data/mpboard';
+
+export function getStaticPaths() {
+  return CLASSES.flatMap((c) => c.subjects.map((s) => ({ params: { cls: c.slug, subject: s.slug }, props: { c, s } })));
+}
+const { c, s } = Astro.props as { c: ClassInfo; s: Subject };
+const notes = await getCollection('notes');
+const hasNotes = new Set(notes.map((n) => n.id));
+---
+<Base title={`MP Board ${c.name} ${s.name} — Chapter-wise Notes`} description={`Chapter-wise notes and important questions for MP Board ${c.name} ${s.name} (${s.hindi}).`}>
+  <PageHead
+    title={`${c.name} ${s.name}`}
+    intro={`Chapter-wise notes and important questions for MP Board ${c.name} ${s.name} (${s.hindi}).`}
+    crumbs={[{ label: 'MP Board', href: '/mp-board/' }, { label: c.name, href: `/mp-board/${c.slug}/` }, { label: s.name }]}
+  />
+  <section class="section">
+    <div class="wrap">
+      {s.chapters.length === 0 ? (
+        <div class="notice">Chapters for {c.name} {s.name} are being added. Check back soon, or try a <a href="/mock-tests/">mock test</a> meanwhile.</div>
+      ) : (
+        <ol class="chapter-list">
+          {s.chapters.map((ch, i) => {
+            const slug = chapterSlug(i);
+            const ready = hasNotes.has(`${c.slug}/${s.slug}/${slug}`);
+            return (
+              <li>
+                <a href={`/mp-board/${c.slug}/${s.slug}/${slug}/`}>
+                  <span class="num">{i + 1}</span>
+                  <span class="title">{ch}</span>
+                  {ready ? <span class="chip live">Notes ready</span> : <span class="chip soon">Soon</span>}
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  </section>
+</Base>

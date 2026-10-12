@@ -1,0 +1,150 @@
+---
+import '../styles/global.css';
+import Logo from '../components/Logo.astro';
+import { SITE, NAV } from '../site.config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  bare?: boolean; // hide footer (used by the test screen)
+}
+const { title, description = SITE.description, bare = false } = Astro.props;
+const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
+const path = Astro.url.pathname;
+const canonical = new URL(path, SITE.url).href;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+const socials = Object.entries(SITE.social).filter(([, v]) => v);
+const year = new Date().getFullYear();
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE.name} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a href="/" class="brand" aria-label={`${SITE.name} home`}>
+          <Logo />
+          <span>{SITE.name}</span>
+        </a>
+        <button class="menu-btn" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+        <nav id="site-nav" class="nav">
+          {NAV.map((n) => (
+            <a href={n.href} class:list={{ active: isActive(n.href) }}>{n.label}</a>
+          ))}
+          <a href="/mock-tests/" class="btn btn-accent btn-sm nav-cta">Free Mock Test</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    {!bare && (
+      <footer class="site-footer">
+        <div class="wrap foot-grid">
+          <div>
+            <a href="/" class="brand light"><Logo size={30} /><span>{SITE.name}</span></a>
+            <p class="foot-tag">{SITE.tagline}. Made by a teacher, for students.</p>
+            {socials.length > 0 && (
+              <div class="socials">
+                {socials.map(([k, v]) => (
+                  <a href={v} target="_blank" rel="noopener" class="chip">{k[0].toUpperCase() + k.slice(1)}</a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <h4>Study</h4>
+            <a href="/mp-board/">MP Board</a>
+            <a href="/exams/">Competitive Exams</a>
+            <a href="/mock-tests/">Mock Tests</a>
+          </div>
+          <div>
+            <h4>MP Board</h4>
+            <a href="/mp-board/class-9/">Class 9</a>
+            <a href="/mp-board/class-10/">Class 10</a>
+            <a href="/mp-board/class-11/">Class 11</a>
+            <a href="/mp-board/class-12/">Class 12</a>
+          </div>
+          <div>
+            <h4>Bookesh</h4>
+            <a href="/about/">About</a>
+            {SITE.email && <a href={`mailto:${SITE.email}`}>Contact</a>}
+          </div>
+        </div>
+        <div class="wrap copy">© {year} {SITE.domain} · All study material is free for students.</div>
+      </footer>
+    )}
+
+    <script>
+      const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
+      const nav = document.getElementById('site-nav');
+      btn?.addEventListener('click', () => {
+        const open = nav?.classList.toggle('open');
+        btn.setAttribute('aria-expanded', String(!!open));
+        document.body.classList.toggle('nav-open', !!open);
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .skip { position: absolute; left: -999px; top: 8px; background: #fff; padding: 8px 12px; z-index: 100; border-radius: 8px; }
+  .skip:focus { left: 8px; }
+  .site-header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.92); backdrop-filter: saturate(180%) blur(10px); border-bottom: 1px solid var(--border); }
+  .site-header .bar { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; font: 700 1.3rem var(--font-head); color: var(--text); text-decoration: none !important; }
+  .brand.light { color: #fff; }
+  .nav { display: flex; align-items: center; gap: 4px; }
+  .nav a:not(.btn) { padding: 8px 12px; border-radius: 8px; color: var(--text-2); font-weight: 500; font-size: .95rem; text-decoration: none; }
+  .nav a:not(.btn):hover { background: var(--bg-alt); color: var(--text); }
+  .nav a.active { color: var(--brand); background: var(--brand-soft); }
+  .nav-cta { margin-left: 8px; }
+  .menu-btn { display: none; width: 42px; height: 42px; border: 1px solid var(--border); background: #fff; border-radius: 10px; cursor: pointer; padding: 10px; flex-direction: column; justify-content: space-between; }
+  .menu-btn span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: transform .2s, opacity .2s; }
+  .nav-open .menu-btn span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+  .nav-open .menu-btn span:nth-child(2) { opacity: 0; }
+  .nav-open .menu-btn span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+  @media (max-width: 900px) {
+    .menu-btn { display: flex; }
+    .nav { position: fixed; inset: 64px 0 auto 0; flex-direction: column; align-items: stretch; background: #fff; padding: 12px 16px 20px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-lg); display: none; }
+    .nav.open { display: flex; }
+    .nav a:not(.btn) { padding: 12px; font-size: 1rem; }
+    .nav-cta { margin: 8px 0 0; }
+  }
+
+  .site-footer { background: #0b1736; color: #cbd5e1; padding: 48px 0 0; margin-top: 0; }
+  .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 28px; }
+  .foot-grid h4 { color: #fff; font-size: .95rem; margin-bottom: 12px; }
+  .foot-grid a:not(.brand):not(.chip) { display: block; color: #cbd5e1; padding: 3px 0; font-size: .93rem; }
+  .foot-grid a:not(.brand):not(.chip):hover { color: #fff; }
+  .foot-tag { margin: 12px 0; font-size: .93rem; max-width: 320px; }
+  .socials { display: flex; gap: 8px; flex-wrap: wrap; }
+  .socials .chip { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.15); }
+  .copy { border-top: 1px solid rgba(255,255,255,.1); margin-top: 36px; padding: 18px 16px; font-size: .85rem; color: #94a3b8; }
+  @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr 1fr; } .foot-grid > div:first-child { grid-column: 1 / -1; } }
+</style>

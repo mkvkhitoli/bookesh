@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { EXAMS } from '../../data/exams';
+---
+<Base title="Competitive Exams — MP SI, Police, Patwari, MPPSC" description="Free preparation for MP government exams: MP SI, MP Police Constable, Patwari, MPPSC, MP TET, SSC and Railway.">
+  <PageHead
+    title="Competitive Exams"
+    intro="Syllabus overview, practice and free mock tests for the government exams MP students take most."
+    crumbs={[{ label: 'Competitive Exams' }]}
+  />
+  <section class="section">
+    <div class="wrap">
+      <div class="grid grid-2">
+        {EXAMS.map((e) => (
+          <a href={`/exams/${e.slug}/`} class="card ex">
+            <div class:list={['icon-badge', e.tone]}>{e.icon}</div>
+            <div>
+              <h3>{e.name}</h3>
+              <p>{e.about}</p>
+              <span class:list={['chip', e.tests.length ? 'live' : 'soon']}>
+                {e.tests.length ? `${e.tests.length} mock test${e.tests.length > 1 ? 's' : ''}` : 'Tests coming soon'}
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .ex { display: flex; gap: 18px; align-items: flex-start; }
+  .ex .icon-badge { flex: none; margin: 0; }
+  .ex .chip { margin-top: 12px; }
+</style>

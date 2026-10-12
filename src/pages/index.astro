@@ -1,0 +1,206 @@
+---
+import Base from '../layouts/Base.astro';
+import { CLASSES } from '../data/mpboard';
+import { EXAMS } from '../data/exams';
+import { TESTS } from '../data/tests';
+import { SITE } from '../site.config';
+
+const joinLink = SITE.social.telegram || SITE.social.whatsapp;
+const featured = TESTS.slice(0, 3);
+---
+<Base>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">MP Board · MP Police · SI · Patwari · MPPSC</span>
+        <h1>Study smarter.<br /><span class="hl">Score higher.</span></h1>
+        <p class="lead">
+          Free chapter notes, practice questions and real-exam-style <strong>CBT mock tests</strong> for Madhya Pradesh students, made by a teacher.
+        </p>
+        <div class="hero-cta">
+          <a href="/mock-tests/" class="btn btn-primary">Start a free mock test →</a>
+          <a href="/mp-board/" class="btn btn-ghost">MP Board notes</a>
+        </div>
+        <ul class="ticks">
+          <li>100% free</li>
+          <li>Timer + negative marking</li>
+          <li>Hindi explanations</li>
+        </ul>
+      </div>
+
+      <!-- Mock test preview card -->
+      <div class="preview" aria-hidden="true">
+        <div class="pv-top">
+          <span class="pv-title">MP GK Practice Test</span>
+          <span class="pv-timer">⏱ 14:32</span>
+        </div>
+        <div class="pv-q">
+          <span class="pv-qn">Q 3 / 20</span>
+          <p>Which river is called the 'lifeline of Madhya Pradesh'?</p>
+          <div class="pv-opt">A. Chambal</div>
+          <div class="pv-opt">B. Betwa</div>
+          <div class="pv-opt sel">C. Narmada ✓</div>
+          <div class="pv-opt">D. Son</div>
+        </div>
+        <div class="pv-palette">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <span class:list={['pv-dot', i < 2 ? 'a' : i === 2 ? 'cur' : i === 5 ? 'm' : '']}>{i + 1}</span>
+          ))}
+        </div>
+        <div class="pv-badge">Instant result + solutions</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHOOSE PATH -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">MP Board (MPBSE)</span>
+          <h2>Pick your class</h2>
+          <p>NCERT-based chapter notes and practice for every subject.</p>
+        </div>
+        <a href="/mp-board/" class="btn btn-ghost btn-sm">All classes →</a>
+      </div>
+      <div class="grid grid-4">
+        {CLASSES.map((c) => (
+          <a href={`/mp-board/${c.slug}/`} class="card class-card">
+            <div class:list={['icon-badge', c.tone]}>{c.short}</div>
+            <h3>{c.name}</h3>
+            <p>{c.blurb}</p>
+            <span class="more">{c.subjects.length} subjects →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Competitive exams</span>
+          <h2>Preparing for a government job?</h2>
+          <p>Syllabus, practice and mock tests for the exams MP students take most.</p>
+        </div>
+        <a href="/exams/" class="btn btn-ghost btn-sm">All exams →</a>
+      </div>
+      <div class="grid grid-3">
+        {EXAMS.map((e) => (
+          <a href={`/exams/${e.slug}/`} class="card exam-card">
+            <div class:list={['icon-badge', e.tone]}>{e.icon}</div>
+            <h3>{e.name}</h3>
+            <p>{e.full}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- MOCK TESTS -->
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Practice like the real exam</span>
+          <h2>Free CBT mock tests</h2>
+          <p>A timer, question palette and negative marking, just like the real exam, with a full answer key at the end.</p>
+        </div>
+        <a href="/mock-tests/" class="btn btn-ghost btn-sm">All tests →</a>
+      </div>
+      <div class="grid grid-3">
+        {featured.map((t) => (
+          <a href={`/mock-tests/${t.id}/`} class="card test-card">
+            <span class="chip live">● Live</span>
+            <h3>{t.title}</h3>
+            <p>{t.description}</p>
+            <div class="meta">
+              <span>📝 {t.questions.length} Qs</span>
+              <span>⏱ {t.durationMinutes} min</span>
+              <span>➖ {t.negativeMarks} negative</span>
+            </div>
+          </a>
+        ))}
+        <div class="card test-card soon-card">
+          <span class="chip soon">Coming soon</span>
+          <h3>Previous year papers</h3>
+          <p>MP SI, Police Constable and Patwari papers as full-length live tests.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section class="section alt">
+    <div class="wrap">
+      <div class="section-head"><div><span class="eyebrow">Why Bookesh</span><h2>Built the way students actually study</h2></div></div>
+      <div class="grid grid-4">
+        <div class="card"><div class="icon-badge tone-blue">📱</div><h3>Mobile first</h3><p>Every page and test works on a basic Android phone, even on slow internet.</p></div>
+        <div class="card"><div class="icon-badge tone-green">₹0</div><h3>Always free</h3><p>No login and no payment. Open a page and start studying.</p></div>
+        <div class="card"><div class="icon-badge tone-amber">अ</div><h3>Hindi support</h3><p>Every solution is explained in English, with a summary in Hindi.</p></div>
+        <div class="card"><div class="icon-badge tone-purple">🎓</div><h3>By a teacher</h3><p>Content is written and checked by a teacher who knows the MP syllabus.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOIN -->
+  <section class="section">
+    <div class="wrap">
+      <div class="join">
+        <div>
+          <h2>Get a new quiz every day</h2>
+          <p>Join the Bookesh community for daily questions, exam updates and new notes.</p>
+        </div>
+        {joinLink
+          ? <a href={joinLink} target="_blank" rel="noopener" class="btn btn-accent">Join the community →</a>
+          : <a href="/mock-tests/" class="btn btn-accent">Take today's test →</a>}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { background: radial-gradient(1200px 500px at 85% -10%, #dbe6ff 0%, transparent 60%), linear-gradient(180deg, #f5f8ff, #fff); padding: 56px 0 64px; overflow: hidden; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  .hl { color: var(--brand); position: relative; }
+  .hl::after { content: ''; position: absolute; left: 0; right: 0; bottom: .08em; height: .22em; background: #fde68a; z-index: -1; border-radius: 4px; }
+  .lead { font-size: 1.15rem; color: var(--text-2); max-width: 540px; margin: 16px 0 24px; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .ticks { list-style: none; padding: 0; margin: 22px 0 0; display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-2); font-size: .92rem; }
+  .ticks li::before { content: '✓'; color: var(--green); font-weight: 700; margin-right: 6px; }
+
+  .preview { position: relative; background: #fff; border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-lg); padding: 18px; transform: rotate(1.5deg); max-width: 420px; justify-self: center; width: 100%; }
+  .pv-top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .pv-title { font-weight: 600; font-size: .9rem; }
+  .pv-timer { background: var(--red-soft); color: var(--red); font-weight: 700; padding: 4px 10px; border-radius: 999px; font-size: .85rem; }
+  .pv-q { padding: 14px 0; }
+  .pv-qn { font-size: .78rem; color: var(--text-3); font-weight: 600; }
+  .pv-q p { font-weight: 600; margin: 6px 0 12px; }
+  .pv-opt { border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; font-size: .92rem; }
+  .pv-opt.sel { border-color: var(--green); background: var(--green-soft); color: #166534; font-weight: 600; }
+  .pv-palette { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .pv-dot { aspect-ratio: 1; display: grid; place-items: center; font-size: .65rem; border-radius: 6px; background: var(--bg-alt); color: var(--text-3); font-weight: 600; }
+  .pv-dot.a { background: var(--green); color: #fff; }
+  .pv-dot.m { background: var(--purple); color: #fff; }
+  .pv-dot.cur { outline: 2px solid var(--brand); color: var(--brand); background: #fff; }
+  .pv-badge { position: absolute; bottom: -14px; left: -14px; background: var(--accent); color: #111; font-weight: 700; font-size: .82rem; padding: 8px 14px; border-radius: 999px; box-shadow: var(--shadow); transform: rotate(-3deg); }
+
+  .class-card .icon-badge { font-size: 1.2rem; }
+  .class-card .more { display: inline-block; margin-top: 12px; font-weight: 600; font-size: .88rem; color: var(--brand); }
+  .test-card .chip { margin-bottom: 12px; }
+  .test-card .meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; font-size: .82rem; color: var(--text-2); }
+  .soon-card { background: repeating-linear-gradient(45deg, #fff, #fff 10px, #fafbff 10px, #fafbff 20px); }
+
+  .join { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; background: linear-gradient(120deg, var(--brand), #3b5bfd); color: #fff; border-radius: 20px; padding: 32px; }
+  .join h2 { color: #fff; margin-bottom: 4px; }
+  .join p { margin: 0; color: #dbe6ff; }
+
+  @media (max-width: 900px) {
+    .hero { padding: 36px 0 48px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .preview { transform: none; }
+    .pv-badge { left: 8px; }
+  }
+</style>
